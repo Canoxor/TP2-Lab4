@@ -19,4 +19,11 @@ public class Persona {
 		this.nombre = nombre;
 		this.apellido = apellido;
 	}
+
+	@Override
+	public String toString() {
+		return "Persona DNI = " + dni + ", NOMBRE = " + nombre + ", APELLIDO = " + apellido;
+	}
+	
+	
 }
