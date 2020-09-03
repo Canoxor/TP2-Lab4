@@ -1,67 +1,208 @@
 package paquete;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.TreeSet;
 
 public class Lectura {
-	public class Archivos {
 
-		private String ruta = "E:\\UTN2C\\lab4\\PersonasEmpresa.txt";
-		
-		public int contar_lineas() {
-			int aux = 0;
-			FileReader entrada;
-			try {
-				entrada = new FileReader(ruta);
-				BufferedReader miBuffer = new BufferedReader(entrada);
-				
-				String linea = "";
-				while (linea != null ) {
-					System.out.println(linea);
-					linea = miBuffer.readLine();
-					
-					aux ++;
-				}
-				entrada.close();
-		
-			} catch (IOException e) {
-				System.out.println("No se encontro el archivo");
-			}
-			return aux;
+	private String ruta = "Archivos\\PersonasEmpresa.txt";
+	private String ruta_Escritura = "Archivo\\Resultado.txt";
+
+	public boolean existeEscritura()
+	{
+		File archivo = new File(ruta_Escritura);
+		if(archivo.exists())
+		{
+			return true;
 		}
+		return false;
+	}
+	
+	public boolean existeLectura()
+	{
+		File archivo = new File(ruta);
+		if(archivo.exists())
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean CrearArchivo()
+	{
+		FileWriter Escritura;
+		try
+		{
+			Escritura = new FileWriter("Archivo.txt",true);
+			Escritura.write("");
+			Escritura.close();
+			
+			System.out.println("Archivo creado");
+			return true;
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	public void DividirLinea(String linea, Persona pipol) {
+		String Nombre = "";
+		String Apellido = "";
+		String DNI = "";
+		int Pos1 = 0;
+		int Pos2 = 0;
+		Pos1 = linea.indexOf("-");
+		Nombre = linea.substring(0, Pos1);
+		Pos1++;
+		Pos2 = linea.indexOf("-", Pos1);
+		Apellido = linea.substring(Pos1, Pos2);
+		Pos2++;
+		DNI = linea.substring(Pos2);
+
+		int DNI_N = Integer.parseInt(DNI);
+
+		String original = Nombre;
+		String cadenaNormalize = Normalizer.normalize(original, Normalizer.Form.NFD);
+		String cadenaSinAcentos = cadenaNormalize.replaceAll("[^\\p{ASCII}]", "");
+
+		pipol.setNombre(cadenaSinAcentos);
+		pipol.setApellido(Apellido);
+		pipol.setDni(DNI_N);
+	}
+
+	public void CargarLista() {
+
+		int Registros = ContarRegistros();
+
+		FileReader entrada;
+		int a, x;
+
+		Persona pipol = new Persona();
+
+		Persona[] Lista = new Persona[Registros];
 		
-		
-		public void lee_archivo() {
-			int pos , contador , dni;
-			String aux="";
-			String aux2 = "";
-			String nombre;
-			String apellido;
-			try {
-				List<Persona> Persona = new ArrayList<>(); //creo el array de la lista de personas
-				String linea ="";
-				BufferedReader lector = new BufferedReader(new InputStreamReader(new FileInputStream(ruta), "utf-8")); //crea un lector ylo pone en español	
-				try {
-					while ((linea = lector.readLine()) != null) {	//lee todo el archivo
-							//completar con la carga de persona
-							//recibir con la persona cargada y agregar a la lista
-					}finally{
-						
+		int Tope = 0;
+
+		try {
+			entrada = new FileReader(ruta);
+			BufferedReader Buffer = new BufferedReader(entrada);
+
+			String linea = "";
+			for (a = 0; a < Registros; a++) {
+				linea = Buffer.readLine();
+				Tope++;
+				DividirLinea(linea, pipol);
+
+				// EXCEPCION
+				if(a>0)
+				{
+					if(ExisteDNI(pipol.getDni(),Lista, Tope)==false)
+					{
+						Lista[a] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
+					}
+					else
+					{
+						Tope--;
+						System.out.println("Chupala prro");
 					}
 				}
+				else
+				{
+					Lista[a] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
+				}
+			}
+			Buffer.close();
+			entrada.close();
+
+		} catch (IOException e) {
+			System.out.println("No se encontro el archivo");
+		}
+
+		OrdenarLista(Lista);
+
+		CargarArchivo(Lista);
+	}
+	
+	public boolean ExisteDNI(int dni, Persona[] Lista, int tope)
+	{
+		for(int x=0; x<tope; x++)
+		{
+			if(dni == Lista[x].getDni())
+			{
+				return true;
 			}
 		}
+		return false;
+	}
 
-		
-		
-
+	private void CargarArchivo(Persona[] Lista) {
+		try {
+			
+			FileWriter Escribidura = new FileWriter("Archivo.txt", false);
+			BufferedWriter buffer = new BufferedWriter(Escribidura);
+			
+			int Registros = ContarRegistros();
+			
+			for(int x=0; x<Registros; x++)
+			{
+				buffer.write(Lista[x].getNombre()+"-"+Lista[x].getApellido()+"-"+Lista[x].getDni()+"\n");
+			}
+			buffer.close();
+			Escribidura.close();	
+			
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
+	}
 
+	public void OrdenarLista(Persona[] Lista) {
+		int Registros = ContarRegistros();
+		Persona Aux = new Persona();
 
+		for (int x = 0; x < Registros; x++) {
+			for (int j = x + 1; j < Registros; j++) {
+				if (Lista[x].getNombre().compareToIgnoreCase(Lista[j].getNombre()) < 0) {
+					Aux = Lista[x];
+					Lista[x] = Lista[j];
+					Lista[j] = Aux;
+				}
+			}
+		}
+	}
+
+	public int ContarRegistros() {
+		FileReader entrada;
+
+		try {
+			int Cantidad = 0;
+			entrada = new FileReader(ruta);
+			BufferedReader Buffer = new BufferedReader(entrada);
+
+			String linea = "";
+			while (linea != null) {
+				linea = Buffer.readLine();
+				Cantidad = Cantidad + 1;
+				// System.out.println(Cantidad);
+			}
+			Buffer.close();
+			entrada.close();
+			return Cantidad - 1;
+
+		} catch (IOException e) {
+			System.out.println("No se encontro el archivo");
+			return 0;
+		}
+	}
 }
