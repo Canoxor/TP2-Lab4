@@ -16,7 +16,7 @@ import java.util.TreeSet;
 public class Lectura {
 
 	private String ruta = "Archivos\\PersonasEmpresa.txt";
-	private String ruta_Escritura = "Archivo\\Resultado.txt";
+	private String ruta_Escritura = "Resultado.txt";
 
 	public boolean existeEscritura()
 	{
@@ -43,7 +43,7 @@ public class Lectura {
 		FileWriter Escritura;
 		try
 		{
-			Escritura = new FileWriter("Archivo.txt",true);
+			Escritura = new FileWriter("Resultado.txt",true);
 			Escritura.write("");
 			Escritura.close();
 			
@@ -82,10 +82,10 @@ public class Lectura {
 		pipol.setDni(DNI_N);
 	}
 
-	public void CargarLista() {
+	public void CargarLista() throws Excepcion_DNI{
 
 		int Registros = ContarRegistros();
-
+		
 		FileReader entrada;
 		int a, x;
 
@@ -93,7 +93,7 @@ public class Lectura {
 
 		Persona[] Lista = new Persona[Registros];
 		
-		int Tope = 0;
+		int Tope = -1;
 
 		try {
 			entrada = new FileReader(ruta);
@@ -106,33 +106,58 @@ public class Lectura {
 				DividirLinea(linea, pipol);
 
 				// EXCEPCION
-				if(a>0)
+				if(a!=0)
 				{
-					if(ExisteDNI(pipol.getDni(),Lista, Tope)==false)
+					try
 					{
-						Lista[a] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
+					if(!(pipol.getDni() > 99999999 || pipol.getDni() < 10000000))
+					{
+						if(ExisteDNI(pipol.getDni(),Lista, Tope)==false)
+						{
+							Lista[Tope] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
+						}
+						else
+						{
+							Tope--;
+						}
 					}
 					else
 					{
 						Tope--;
-						System.out.println("Chupala prro");
+						throw new Excepcion_DNI();
 					}
+				}
+					catch(Excepcion_DNI e)
+					{
+						e.printStackTrace();
+					}
+					
 				}
 				else
 				{
-					Lista[a] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
+					Lista[Tope] = new Persona(pipol.getDni(), pipol.getNombre(), pipol.getApellido());
 				}
 			}
 			Buffer.close();
 			entrada.close();
+			
+			/// Contar Registros cargados
+			for(x=0; x<Registros; x++)
+			{
+				if(Lista[x]==null)
+				{
+					Registros=x;
+					break;
+				}
+			}
 
 		} catch (IOException e) {
 			System.out.println("No se encontro el archivo");
 		}
 
-		OrdenarLista(Lista);
+		OrdenarLista(Lista, Registros);
 
-		CargarArchivo(Lista);
+		CargarArchivo(Lista, Registros);
 	}
 	
 	public boolean ExisteDNI(int dni, Persona[] Lista, int tope)
@@ -147,14 +172,12 @@ public class Lectura {
 		return false;
 	}
 
-	private void CargarArchivo(Persona[] Lista) {
+	private void CargarArchivo(Persona[] Lista, int Registros) {
 		try {
 			
-			FileWriter Escribidura = new FileWriter("Archivo.txt", false);
+			FileWriter Escribidura = new FileWriter("Resultado.txt", false);
 			BufferedWriter buffer = new BufferedWriter(Escribidura);
-			
-			int Registros = ContarRegistros();
-			
+						
 			for(int x=0; x<Registros; x++)
 			{
 				buffer.write(Lista[x].getNombre()+"-"+Lista[x].getApellido()+"-"+Lista[x].getDni()+"\n");
@@ -167,8 +190,7 @@ public class Lectura {
 		}
 	}
 
-	public void OrdenarLista(Persona[] Lista) {
-		int Registros = ContarRegistros();
+	public void OrdenarLista(Persona[] Lista, int Registros) {
 		Persona Aux = new Persona();
 
 		for (int x = 0; x < Registros; x++) {
